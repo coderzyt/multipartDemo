@@ -1,0 +1,6 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.web.servlet.MultipartAutoConfiguration
+  servlet:
+    multipart:
+      resolve-lazily: false
