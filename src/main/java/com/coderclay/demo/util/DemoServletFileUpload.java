@@ -16,19 +16,13 @@
  */
 package com.coderclay.demo.util;
 
+import org.apache.commons.fileupload.*;
+import org.apache.commons.fileupload.servlet.ServletRequestContext;
+
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemFactory;
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileUpload;
-import org.apache.commons.fileupload.FileUploadBase;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.servlet.ServletRequestContext;
 
 /**
  * <p>High level API for processing file uploads.</p>
@@ -54,25 +48,6 @@ public class DemoServletFileUpload extends DemoFileUpload {
     // ---------------------------------------------------------- Class methods
 
     /**
-     * Utility method that determines whether the request contains multipart
-     * content.
-     *
-     * @param request The servlet request to be evaluated. Must be non-null.
-     *
-     * @return <code>true</code> if the request is multipart;
-     *         <code>false</code> otherwise.
-     */
-    public static final boolean isMultipartContent(
-            HttpServletRequest request) {
-        if (!POST_METHOD.equalsIgnoreCase(request.getMethod())) {
-            return false;
-        }
-        return FileUploadBase.isMultipartContent(new ServletRequestContext(request));
-    }
-
-    // ----------------------------------------------------------- Constructors
-
-    /**
      * Constructs an uninitialised instance of this class. A factory must be
      * configured, using <code>setFileItemFactory()</code>, before attempting
      * to parse requests.
@@ -83,15 +58,33 @@ public class DemoServletFileUpload extends DemoFileUpload {
         super();
     }
 
+    // ----------------------------------------------------------- Constructors
+
     /**
      * Constructs an instance of this class which uses the supplied factory to
      * create <code>FileItem</code> instances.
      *
-     * @see FileUpload#FileUpload()
      * @param fileItemFactory The factory to use for creating file items.
+     * @see FileUpload#FileUpload()
      */
     public DemoServletFileUpload(FileItemFactory fileItemFactory) {
         super(fileItemFactory);
+    }
+
+    /**
+     * Utility method that determines whether the request contains multipart
+     * content.
+     *
+     * @param request The servlet request to be evaluated. Must be non-null.
+     * @return <code>true</code> if the request is multipart;
+     * <code>false</code> otherwise.
+     */
+    public static final boolean isMultipartContent(
+            HttpServletRequest request) {
+        if (!POST_METHOD.equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        return FileUploadBase.isMultipartContent(new ServletRequestContext(request));
     }
 
     // --------------------------------------------------------- Public methods
@@ -101,16 +94,14 @@ public class DemoServletFileUpload extends DemoFileUpload {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param request The servlet request to be parsed.
-     *
      * @return A list of <code>FileItem</code> instances parsed from the
-     *         request, in the order that they were transmitted.
-     *
+     * request, in the order that they were transmitted.
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
      */
     @Override
     public List<FileItem> parseRequest(HttpServletRequest request)
-    throws FileUploadException {
+            throws FileUploadException {
         return parseRequest(new ServletRequestContext(request));
     }
 
@@ -119,12 +110,9 @@ public class DemoServletFileUpload extends DemoFileUpload {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param request The servlet request to be parsed.
-     *
      * @return A map of <code>FileItem</code> instances parsed from the request.
-     *
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
-     *
      * @since 1.3
      */
     public Map<String, List<FileItem>> parseParameterMap(HttpServletRequest request)
@@ -137,19 +125,17 @@ public class DemoServletFileUpload extends DemoFileUpload {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param request The servlet request to be parsed.
-     *
      * @return An iterator to instances of <code>FileItemStream</code>
-     *         parsed from the request, in the order that they were
-     *         transmitted.
-     *
+     * parsed from the request, in the order that they were
+     * transmitted.
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
-     * @throws IOException An I/O error occurred. This may be a network
-     *   error while communicating with the client or a problem while
-     *   storing the uploaded content.
+     * @throws IOException         An I/O error occurred. This may be a network
+     *                             error while communicating with the client or a problem while
+     *                             storing the uploaded content.
      */
     public FileItemIterator getItemIterator(HttpServletRequest request)
-    throws FileUploadException, IOException {
+            throws FileUploadException, IOException {
         return super.getItemIterator(new ServletRequestContext(request));
     }
 

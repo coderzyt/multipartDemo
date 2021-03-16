@@ -5,13 +5,6 @@
 
 package com.coderclay.demo.util;
 
-import java.io.IOException;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
@@ -19,6 +12,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.multipart.MultipartResolver;
 import org.springframework.web.multipart.support.StandardServletMultipartResolver;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @Component
 public class MultipartFilter extends OncePerRequestFilter {
@@ -29,12 +29,12 @@ public class MultipartFilter extends OncePerRequestFilter {
     public MultipartFilter() {
     }
 
-    public void setMultipartResolverBeanName(String multipartResolverBeanName) {
-        this.multipartResolverBeanName = multipartResolverBeanName;
-    }
-
     protected String getMultipartResolverBeanName() {
         return this.multipartResolverBeanName;
+    }
+
+    public void setMultipartResolverBeanName(String multipartResolverBeanName) {
+        this.multipartResolverBeanName = multipartResolverBeanName;
     }
 
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -51,10 +51,10 @@ public class MultipartFilter extends OncePerRequestFilter {
         }
 
         try {
-            filterChain.doFilter((ServletRequest)processedRequest, response);
+            filterChain.doFilter((ServletRequest) processedRequest, response);
         } finally {
             if (processedRequest instanceof MultipartHttpServletRequest) {
-                multipartResolver.cleanupMultipart((MultipartHttpServletRequest)processedRequest);
+                multipartResolver.cleanupMultipart((MultipartHttpServletRequest) processedRequest);
             }
 
         }
@@ -73,7 +73,7 @@ public class MultipartFilter extends OncePerRequestFilter {
                 this.logger.debug("Using MultipartResolver '" + beanName + "' for MultipartFilter");
             }
 
-            return (MultipartResolver)wac.getBean(beanName, MultipartResolver.class);
+            return (MultipartResolver) wac.getBean(beanName, MultipartResolver.class);
         } else {
             return this.defaultMultipartResolver;
         }

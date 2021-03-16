@@ -16,9 +16,6 @@
 
 package com.coderclay.demo.config;
 
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.Servlet;
-
 import com.coderclay.demo.resolver.DemoMultipartResolver;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -36,6 +33,9 @@ import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.DispatcherServlet;
 
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.Servlet;
+
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for multi-part uploads. Adds a
  * {@link StandardServletMultipartResolver} if none is present, and adds a
@@ -52,30 +52,30 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @since 2.0.0
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass({ Servlet.class, DemoMultipartResolver.class, MultipartConfigElement.class })
+@ConditionalOnClass({Servlet.class, DemoMultipartResolver.class, MultipartConfigElement.class})
 @ConditionalOnProperty(prefix = "spring.servlet.multipart", name = "enabled", matchIfMissing = true)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @EnableConfigurationProperties(MultipartProperties.class)
 public class MultipartAutoConfiguration {
 
-	private final MultipartProperties multipartProperties;
+    private final MultipartProperties multipartProperties;
 
-	public MultipartAutoConfiguration(MultipartProperties multipartProperties) {
-		this.multipartProperties = multipartProperties;
-	}
+    public MultipartAutoConfiguration(MultipartProperties multipartProperties) {
+        this.multipartProperties = multipartProperties;
+    }
 
-	@Bean
-	@ConditionalOnMissingBean({ MultipartConfigElement.class, CommonsMultipartResolver.class })
-	public MultipartConfigElement multipartConfigElement() {
-		return this.multipartProperties.createMultipartConfig();
-	}
+    @Bean
+    @ConditionalOnMissingBean({MultipartConfigElement.class, CommonsMultipartResolver.class})
+    public MultipartConfigElement multipartConfigElement() {
+        return this.multipartProperties.createMultipartConfig();
+    }
 
-	@Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
-	@ConditionalOnMissingBean(MultipartResolver.class)
-	public DemoMultipartResolver multipartResolver() {
-		DemoMultipartResolver multipartResolver = new DemoMultipartResolver();
-		multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
-		return multipartResolver;
-	}
+    @Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+    @ConditionalOnMissingBean(MultipartResolver.class)
+    public DemoMultipartResolver multipartResolver() {
+        DemoMultipartResolver multipartResolver = new DemoMultipartResolver();
+        multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
+        return multipartResolver;
+    }
 
 }

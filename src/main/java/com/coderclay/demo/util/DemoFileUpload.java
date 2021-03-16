@@ -34,7 +34,7 @@ import org.apache.commons.fileupload.RequestContext;
  * else.</p>
  */
 public class DemoFileUpload
-    extends DemoFileUploadBase {
+        extends DemoFileUploadBase {
 
     // ----------------------------------------------------------- Data members
 
@@ -47,7 +47,7 @@ public class DemoFileUpload
 
     /**
      * Constructs an uninitialised instance of this class.
-     *
+     * <p>
      * A factory must be
      * configured, using <code>setFileItemFactory()</code>, before attempting
      * to parse requests.
@@ -62,8 +62,8 @@ public class DemoFileUpload
      * Constructs an instance of this class which uses the supplied factory to
      * create <code>FileItem</code> instances.
      *
-     * @see #DemoFileUpload()
      * @param fileItemFactory The factory to use for creating file items.
+     * @see #DemoFileUpload()
      */
     public DemoFileUpload(FileItemFactory fileItemFactory) {
         super();

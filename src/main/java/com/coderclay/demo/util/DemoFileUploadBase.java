@@ -16,23 +16,7 @@
  */
 package com.coderclay.demo.util;
 
-import static java.lang.String.format;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.NoSuchElementException;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.fileupload.*;
-import org.apache.commons.fileupload.MultipartStream.ItemInputStream;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.servlet.ServletRequestContext;
 import org.apache.commons.fileupload.util.Closeable;
@@ -40,6 +24,14 @@ import org.apache.commons.fileupload.util.FileItemHeadersImpl;
 import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.IOUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
+
+import static java.lang.String.format;
 
 /**
  * <p>High level API for processing file uploads.</p>
@@ -60,6 +52,71 @@ public abstract class DemoFileUploadBase {
     // ---------------------------------------------------------- Class methods
 
     /**
+     * HTTP content type header name.
+     */
+    public static final String CONTENT_TYPE = "Content-type";
+    /**
+     * HTTP content disposition header name.
+     */
+    public static final String CONTENT_DISPOSITION = "Content-disposition";
+
+    // ----------------------------------------------------- Manifest constants
+    /**
+     * HTTP content length header name.
+     */
+    public static final String CONTENT_LENGTH = "Content-length";
+    /**
+     * Content-disposition value for form data.
+     */
+    public static final String FORM_DATA = "form-data";
+    /**
+     * Content-disposition value for file attachment.
+     */
+    public static final String ATTACHMENT = "attachment";
+    /**
+     * Part of HTTP content type header.
+     */
+    public static final String MULTIPART = "multipart/";
+    /**
+     * HTTP content type header for multipart forms.
+     */
+    public static final String MULTIPART_FORM_DATA = "multipart/form-data";
+    /**
+     * HTTP content type header for multiple uploads.
+     */
+    public static final String MULTIPART_MIXED = "multipart/mixed";
+    /**
+     * The maximum length of a single header line that will be parsed
+     * (1024 bytes).
+     *
+     * @deprecated This constant is no longer used. As of commons-fileupload
+     * 1.2, the only applicable limit is the total size of a parts headers,
+     * {@link MultipartStream#HEADER_PART_SIZE_MAX}.
+     */
+    @Deprecated
+    public static final int MAX_HEADER_SIZE = 1024;
+    /**
+     * The maximum size permitted for the complete request, as opposed to
+     * {@link #fileSizeMax}. A value of -1 indicates no maximum.
+     */
+    private long sizeMax = -1;
+    /**
+     * The maximum size permitted for a single uploaded file, as opposed
+     * to {@link #sizeMax}. A value of -1 indicates no maximum.
+     */
+    private long fileSizeMax = -1;
+
+    // ----------------------------------------------------------- Data members
+    /**
+     * The content encoding to use when reading part headers.
+     */
+    private String headerEncoding;
+    /**
+     * The progress listener.
+     */
+    private ProgressListener listener;
+
+    /**
      * <p>Utility method that determines whether the request contains multipart
      * content.</p>
      *
@@ -69,9 +126,8 @@ public abstract class DemoFileUploadBase {
      * provide its replacement until this method is removed.</p>
      *
      * @param ctx The request context to be evaluated. Must be non-null.
-     *
      * @return <code>true</code> if the request is multipart;
-     *         <code>false</code> otherwise.
+     * <code>false</code> otherwise.
      */
     public static final boolean isMultipartContent(RequestContext ctx) {
         String contentType = ctx.getContentType();
@@ -89,92 +145,14 @@ public abstract class DemoFileUploadBase {
      * content.
      *
      * @param req The servlet request to be evaluated. Must be non-null.
-     *
      * @return <code>true</code> if the request is multipart;
-     *         <code>false</code> otherwise.
-     *
+     * <code>false</code> otherwise.
      * @deprecated 1.1 Use the method on <code>ServletFileUpload</code> instead.
      */
     @Deprecated
     public static boolean isMultipartContent(HttpServletRequest req) {
         return ServletFileUpload.isMultipartContent(req);
     }
-
-    // ----------------------------------------------------- Manifest constants
-
-    /**
-     * HTTP content type header name.
-     */
-    public static final String CONTENT_TYPE = "Content-type";
-
-    /**
-     * HTTP content disposition header name.
-     */
-    public static final String CONTENT_DISPOSITION = "Content-disposition";
-
-    /**
-     * HTTP content length header name.
-     */
-    public static final String CONTENT_LENGTH = "Content-length";
-
-    /**
-     * Content-disposition value for form data.
-     */
-    public static final String FORM_DATA = "form-data";
-
-    /**
-     * Content-disposition value for file attachment.
-     */
-    public static final String ATTACHMENT = "attachment";
-
-    /**
-     * Part of HTTP content type header.
-     */
-    public static final String MULTIPART = "multipart/";
-
-    /**
-     * HTTP content type header for multipart forms.
-     */
-    public static final String MULTIPART_FORM_DATA = "multipart/form-data";
-
-    /**
-     * HTTP content type header for multiple uploads.
-     */
-    public static final String MULTIPART_MIXED = "multipart/mixed";
-
-    /**
-     * The maximum length of a single header line that will be parsed
-     * (1024 bytes).
-     * @deprecated This constant is no longer used. As of commons-fileupload
-     *   1.2, the only applicable limit is the total size of a parts headers,
-     *   {@link MultipartStream#HEADER_PART_SIZE_MAX}.
-     */
-    @Deprecated
-    public static final int MAX_HEADER_SIZE = 1024;
-
-    // ----------------------------------------------------------- Data members
-
-    /**
-     * The maximum size permitted for the complete request, as opposed to
-     * {@link #fileSizeMax}. A value of -1 indicates no maximum.
-     */
-    private long sizeMax = -1;
-
-    /**
-     * The maximum size permitted for a single uploaded file, as opposed
-     * to {@link #sizeMax}. A value of -1 indicates no maximum.
-     */
-    private long fileSizeMax = -1;
-
-    /**
-     * The content encoding to use when reading part headers.
-     */
-    private String headerEncoding;
-
-    /**
-     * The progress listener.
-     */
-    private ProgressListener listener;
 
     // ----------------------------------------------------- Property accessors
 
@@ -197,10 +175,8 @@ public abstract class DemoFileUploadBase {
      * to {@link #getFileSizeMax()}.
      *
      * @return The maximum allowed size, in bytes. The default value of
-     *   -1 indicates, that there is no limit.
-     *
+     * -1 indicates, that there is no limit.
      * @see #setSizeMax(long)
-     *
      */
     public long getSizeMax() {
         return sizeMax;
@@ -211,10 +187,8 @@ public abstract class DemoFileUploadBase {
      * to {@link #setFileSizeMax(long)}.
      *
      * @param sizeMax The maximum allowed size, in bytes. The default value of
-     *   -1 indicates, that there is no limit.
-     *
+     *                -1 indicates, that there is no limit.
      * @see #getSizeMax()
-     *
      */
     public void setSizeMax(long sizeMax) {
         this.sizeMax = sizeMax;
@@ -224,8 +198,8 @@ public abstract class DemoFileUploadBase {
      * Returns the maximum allowed size of a single uploaded file,
      * as opposed to {@link #getSizeMax()}.
      *
-     * @see #setFileSizeMax(long)
      * @return Maximum size of a single uploaded file.
+     * @see #setFileSizeMax(long)
      */
     public long getFileSizeMax() {
         return fileSizeMax;
@@ -235,8 +209,8 @@ public abstract class DemoFileUploadBase {
      * Sets the maximum allowed size of a single uploaded file,
      * as opposed to {@link #getSizeMax()}.
      *
-     * @see #getFileSizeMax()
      * @param fileSizeMax Maximum size of a single uploaded file.
+     * @see #getFileSizeMax()
      */
     public void setFileSizeMax(long fileSizeMax) {
         this.fileSizeMax = fileSizeMax;
@@ -273,18 +247,15 @@ public abstract class DemoFileUploadBase {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param req The servlet request to be parsed.
-     *
      * @return A list of <code>FileItem</code> instances parsed from the
-     *         request, in the order that they were transmitted.
-     *
+     * request, in the order that they were transmitted.
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
-     *
      * @deprecated 1.1 Use {@link ServletFileUpload#parseRequest(HttpServletRequest)} instead.
      */
     @Deprecated
     public List<FileItem> parseRequest(HttpServletRequest req)
-    throws FileUploadException {
+            throws FileUploadException {
         return parseRequest(new ServletRequestContext(req));
     }
 
@@ -293,19 +264,17 @@ public abstract class DemoFileUploadBase {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param ctx The context for the request to be parsed.
-     *
      * @return An iterator to instances of <code>FileItemStream</code>
-     *         parsed from the request, in the order that they were
-     *         transmitted.
-     *
+     * parsed from the request, in the order that they were
+     * transmitted.
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
-     * @throws IOException An I/O error occurred. This may be a network
-     *   error while communicating with the client or a problem while
-     *   storing the uploaded content.
+     * @throws IOException         An I/O error occurred. This may be a network
+     *                             error while communicating with the client or a problem while
+     *                             storing the uploaded content.
      */
     public FileItemIterator getItemIterator(RequestContext ctx)
-    throws FileUploadException, IOException {
+            throws FileUploadException, IOException {
         try {
             return new FileItemIteratorImpl(ctx);
         } catch (FileUploadIOException e) {
@@ -319,10 +288,8 @@ public abstract class DemoFileUploadBase {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param ctx The context for the request to be parsed.
-     *
      * @return A list of <code>FileItem</code> instances parsed from the
-     *         request, in the order that they were transmitted.
-     *
+     * request, in the order that they were transmitted.
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
      */
@@ -341,7 +308,7 @@ public abstract class DemoFileUploadBase {
                 // Don't use getName() here to prevent an InvalidFileNameException.
                 final String fileName = ((FileItemIteratorImpl.FileItemStreamImpl) item).name;
                 FileItem fileItem = fac.createItem(item.getFieldName(), item.getContentType(),
-                                                   item.isFormField(), fileName);
+                        item.isFormField(), fileName);
                 items.add(fileItem);
                 try {
                     Streams.copy(item.openStream(), fileItem.getOutputStream(), true);
@@ -349,7 +316,7 @@ public abstract class DemoFileUploadBase {
                     throw (FileUploadException) e.getCause();
                 } catch (IOException e) {
                     throw new IOFileUploadException(format("Processing of %s request failed. %s",
-                                                           MULTIPART_FORM_DATA, e.getMessage()), e);
+                            MULTIPART_FORM_DATA, e.getMessage()), e);
                 }
                 final FileItemHeaders fih = item.getHeaders();
                 fileItem.setHeaders(fih);
@@ -378,12 +345,9 @@ public abstract class DemoFileUploadBase {
      * compliant <code>multipart/form-data</code> stream.
      *
      * @param ctx The context for the request to be parsed.
-     *
      * @return A map of <code>FileItem</code> instances parsed from the request.
-     *
      * @throws FileUploadException if there are problems reading/parsing
      *                             the request or storing files.
-     *
      * @since 1.3
      */
     public Map<String, List<FileItem>> parseParameterMap(RequestContext ctx)
@@ -413,14 +377,13 @@ public abstract class DemoFileUploadBase {
      *
      * @param contentType The value of the content type header from which to
      *                    extract the boundary value.
-     *
      * @return The boundary, as a byte array.
      */
     protected byte[] getBoundary(String contentType) {
         ParameterParser parser = new ParameterParser();
         parser.setLowerCaseNames(true);
         // Parameter parser can handle null input
-        Map<String, String> params = parser.parse(contentType, new char[] {';', ','});
+        Map<String, String> params = parser.parse(contentType, new char[]{';', ','});
         String boundaryStr = params.get("boundary");
 
         if (boundaryStr == null) {
@@ -440,7 +403,6 @@ public abstract class DemoFileUploadBase {
      * header.
      *
      * @param headers A <code>Map</code> containing the HTTP request headers.
-     *
      * @return The file name for the current <code>encapsulation</code>.
      * @deprecated 1.2.1 Use {@link #getFileName(FileItemHeaders)}.
      */
@@ -454,7 +416,6 @@ public abstract class DemoFileUploadBase {
      * header.
      *
      * @param headers The HTTP headers object.
-     *
      * @return The file name for the current <code>encapsulation</code>.
      */
     protected String getFileName(FileItemHeaders headers) {
@@ -463,6 +424,7 @@ public abstract class DemoFileUploadBase {
 
     /**
      * Returns the given content-disposition headers file name.
+     *
      * @param pContentDisposition The content-disposition headers value.
      * @return The file name
      */
@@ -496,7 +458,6 @@ public abstract class DemoFileUploadBase {
      * header.
      *
      * @param headers A <code>Map</code> containing the HTTP request headers.
-     *
      * @return The field name for the current <code>encapsulation</code>.
      */
     protected String getFieldName(FileItemHeaders headers) {
@@ -506,6 +467,7 @@ public abstract class DemoFileUploadBase {
     /**
      * Returns the field name, which is given by the content-disposition
      * header.
+     *
      * @param pContentDisposition The content-dispositions header value.
      * @return The field jake
      */
@@ -553,7 +515,6 @@ public abstract class DemoFileUploadBase {
      * header.
      *
      * @param headers A <code>Map</code> containing the HTTP request headers.
-     *
      * @return The field name for the current <code>encapsulation</code>.
      * @deprecated 1.2.1 Use {@link #getFieldName(FileItemHeaders)}.
      */
@@ -565,21 +526,19 @@ public abstract class DemoFileUploadBase {
     /**
      * Creates a new {@link FileItem} instance.
      *
-     * @param headers       A <code>Map</code> containing the HTTP request
-     *                      headers.
-     * @param isFormField   Whether or not this item is a form field, as
-     *                      opposed to a file.
-     *
+     * @param headers     A <code>Map</code> containing the HTTP request
+     *                    headers.
+     * @param isFormField Whether or not this item is a form field, as
+     *                    opposed to a file.
      * @return A newly created <code>FileItem</code> instance.
-     *
      * @throws FileUploadException if an error occurs.
      * @deprecated 1.2 This method is no longer used in favour of
-     *   internally created instances of {@link FileItem}.
+     * internally created instances of {@link FileItem}.
      */
     @Deprecated
     protected FileItem createItem(Map<String, String> headers,
                                   boolean isFormField)
-        throws FileUploadException {
+            throws FileUploadException {
         return getFileItemFactory().createItem(getFieldName(headers),
                 getHeader(headers, CONTENT_TYPE),
                 isFormField,
@@ -595,14 +554,13 @@ public abstract class DemoFileUploadBase {
      *
      * @param headerPart The <code>header-part</code> of the current
      *                   <code>encapsulation</code>.
-     *
      * @return A <code>Map</code> containing the parsed HTTP request headers.
      */
     protected FileItemHeaders getParsedHeaders(String headerPart) {
         final int len = headerPart.length();
         FileItemHeadersImpl headers = newFileItemHeaders();
         int start = 0;
-        for (;;) {
+        for (; ; ) {
             int end = parseEndOfLine(headerPart, start);
             if (start == end) {
                 break;
@@ -613,7 +571,7 @@ public abstract class DemoFileUploadBase {
                 int nonWs = start;
                 while (nonWs < len) {
                     char c = headerPart.charAt(nonWs);
-                    if (c != ' '  &&  c != '\t') {
+                    if (c != ' ' && c != '\t') {
                         break;
                     }
                     ++nonWs;
@@ -633,6 +591,7 @@ public abstract class DemoFileUploadBase {
 
     /**
      * Creates a new instance of {@link FileItemHeaders}.
+     *
      * @return The new instance.
      */
     protected FileItemHeadersImpl newFileItemHeaders() {
@@ -648,7 +607,6 @@ public abstract class DemoFileUploadBase {
      *
      * @param headerPart The <code>header-part</code> of the current
      *                   <code>encapsulation</code>.
-     *
      * @return A <code>Map</code> containing the parsed HTTP request headers.
      * @deprecated 1.2.1 Use {@link #getParsedHeaders(String)}
      */
@@ -656,7 +614,7 @@ public abstract class DemoFileUploadBase {
     protected Map<String, String> parseHeaders(String headerPart) {
         FileItemHeaders headers = getParsedHeaders(headerPart);
         Map<String, String> result = new HashMap<String, String>();
-        for (Iterator<String> iter = headers.getHeaderNames();  iter.hasNext();) {
+        for (Iterator<String> iter = headers.getHeaderNames(); iter.hasNext(); ) {
             String headerName = iter.next();
             Iterator<String> iter2 = headers.getHeaders(headerName);
             StringBuilder headerValue = new StringBuilder(iter2.next());
@@ -670,19 +628,20 @@ public abstract class DemoFileUploadBase {
 
     /**
      * Skips bytes until the end of the current line.
+     *
      * @param headerPart The headers, which are being parsed.
-     * @param end Index of the last byte, which has yet been
-     *   processed.
+     * @param end        Index of the last byte, which has yet been
+     *                   processed.
      * @return Index of the \r\n sequence, which indicates
-     *   end of line.
+     * end of line.
      */
     private int parseEndOfLine(String headerPart, int end) {
         int index = end;
-        for (;;) {
+        for (; ; ) {
             int offset = headerPart.indexOf('\r', index);
-            if (offset == -1  ||  offset + 1 >= headerPart.length()) {
+            if (offset == -1 || offset + 1 >= headerPart.length()) {
                 throw new IllegalStateException(
-                    "Expected headers to be terminated by an empty line.");
+                        "Expected headers to be terminated by an empty line.");
             }
             if (headerPart.charAt(offset + 1) == '\n') {
                 return offset;
@@ -693,8 +652,9 @@ public abstract class DemoFileUploadBase {
 
     /**
      * Reads the next header line.
+     *
      * @param headers String with all headers.
-     * @param header Map where to store the current header.
+     * @param header  Map where to store the current header.
      */
     private void parseHeaderLine(FileItemHeadersImpl headers, String header) {
         final int colonOffset = header.indexOf(':');
@@ -704,7 +664,7 @@ public abstract class DemoFileUploadBase {
         }
         String headerName = header.substring(0, colonOffset).trim();
         String headerValue =
-            header.substring(header.indexOf(':') + 1).trim();
+                header.substring(header.indexOf(':') + 1).trim();
         headers.addHeader(headerName, headerValue);
     }
 
@@ -714,467 +674,32 @@ public abstract class DemoFileUploadBase {
      *
      * @param headers A <code>Map</code> containing the HTTP request headers.
      * @param name    The name of the header to return.
-     *
      * @return The value of specified header, or a comma-separated list if
-     *         there were multiple headers of that name.
+     * there were multiple headers of that name.
      * @deprecated 1.2.1 Use {@link FileItemHeaders#getHeader(String)}.
      */
     @Deprecated
     protected final String getHeader(Map<String, String> headers,
-            String name) {
+                                     String name) {
         return headers.get(name.toLowerCase(Locale.ENGLISH));
     }
 
     /**
-     * The iterator, which is returned by
-     * {@link DemoFileUploadBase#getItemIterator(RequestContext)}.
+     * Returns the progress listener.
+     *
+     * @return The progress listener, if any, or null.
      */
-    private class FileItemIteratorImpl implements FileItemIterator {
+    public ProgressListener getProgressListener() {
+        return listener;
+    }
 
-        /**
-         * Default implementation of {@link FileItemStream}.
-         */
-        class FileItemStreamImpl implements FileItemStream {
-
-            /**
-             * The file items content type.
-             */
-            private final String contentType;
-
-            /**
-             * The file items field name.
-             */
-            private final String fieldName;
-
-            /**
-             * The file items file name.
-             */
-            private final String name;
-
-            /**
-             * Whether the file item is a form field.
-             */
-            private final boolean formField;
-
-            /**
-             * The file items input stream.
-             */
-            private final InputStream stream;
-
-            /**
-             * Whether the file item was already opened.
-             */
-            private boolean opened;
-
-            /**
-             * The headers, if any.
-             */
-            private FileItemHeaders headers;
-
-            /**
-             * Creates a new instance.
-             *
-             * @param pName The items file name, or null.
-             * @param pFieldName The items field name.
-             * @param pContentType The items content type, or null.
-             * @param pFormField Whether the item is a form field.
-             * @param pContentLength The items content length, if known, or -1
-             * @throws IOException Creating the file item failed.
-             */
-            FileItemStreamImpl(String pName, String pFieldName,
-                    String pContentType, boolean pFormField,
-                    long pContentLength) throws IOException {
-                name = pName;
-                fieldName = pFieldName;
-                contentType = pContentType;
-                formField = pFormField;
-                if (fileSizeMax != -1) { // Check if limit is already exceeded
-                    if (pContentLength != -1
-                            && pContentLength > fileSizeMax) {
-                        FileSizeLimitExceededException e =
-                                new FileSizeLimitExceededException(
-                                        format("The field %s exceeds its maximum permitted size of %s bytes.",
-                                                fieldName, Long.valueOf(fileSizeMax)),
-                                        pContentLength, fileSizeMax);
-                        e.setFileName(pName);
-                        e.setFieldName(pFieldName);
-                        throw new FileUploadIOException(e);
-                    }
-                }
-                // OK to construct stream now
-                final MultipartStream.ItemInputStream itemStream = multi.newInputStream();
-                InputStream istream = itemStream;
-                if (fileSizeMax != -1) {
-                    istream = new LimitedInputStream(istream, fileSizeMax) {
-                        @Override
-                        protected void raiseError(long pSizeMax, long pCount)
-                                throws IOException {
-                            itemStream.close(true);
-                            FileSizeLimitExceededException e =
-                                new FileSizeLimitExceededException(
-                                    format("The field %s exceeds its maximum permitted size of %s bytes.",
-                                           fieldName, Long.valueOf(pSizeMax)),
-                                    pCount, pSizeMax);
-                            e.setFieldName(fieldName);
-                            e.setFileName(name);
-                            throw new FileUploadIOException(e);
-                        }
-                    };
-                }
-                stream = istream;
-            }
-
-            /**
-             * Returns the items content type, or null.
-             *
-             * @return Content type, if known, or null.
-             */
-            @Override
-            public String getContentType() {
-                return contentType;
-            }
-
-            /**
-             * Returns the items field name.
-             *
-             * @return Field name.
-             */
-            @Override
-            public String getFieldName() {
-                return fieldName;
-            }
-
-            /**
-             * Returns the items file name.
-             *
-             * @return File name, if known, or null.
-             * @throws InvalidFileNameException The file name contains a NUL character,
-             *   which might be an indicator of a security attack. If you intend to
-             *   use the file name anyways, catch the exception and use
-             *   InvalidFileNameException#getName().
-             */
-            @Override
-            public String getName() {
-                return Streams.checkFileName(name);
-            }
-
-            /**
-             * Returns, whether this is a form field.
-             *
-             * @return True, if the item is a form field,
-             *   otherwise false.
-             */
-            @Override
-            public boolean isFormField() {
-                return formField;
-            }
-
-            /**
-             * Returns an input stream, which may be used to
-             * read the items contents.
-             *
-             * @return Opened input stream.
-             * @throws IOException An I/O error occurred.
-             */
-            @Override
-            public InputStream openStream() throws IOException {
-                if (opened) {
-                    throw new IllegalStateException(
-                            "The stream was already opened.");
-                }
-                if (((Closeable) stream).isClosed()) {
-                    throw new FileItemStream.ItemSkippedException();
-                }
-                return stream;
-            }
-
-            /**
-             * Closes the file item.
-             *
-             * @throws IOException An I/O error occurred.
-             */
-            void close() throws IOException {
-                stream.close();
-            }
-
-            /**
-             * Returns the file item headers.
-             *
-             * @return The items header object
-             */
-            @Override
-            public FileItemHeaders getHeaders() {
-                return headers;
-            }
-
-            /**
-             * Sets the file item headers.
-             *
-             * @param pHeaders The items header object
-             */
-            @Override
-            public void setHeaders(FileItemHeaders pHeaders) {
-                headers = pHeaders;
-            }
-
-        }
-
-        /**
-         * The multi part stream to process.
-         */
-        private final MultipartStream multi;
-
-        /**
-         * The notifier, which used for triggering the
-         * {@link ProgressListener}.
-         */
-        private final MultipartStream.ProgressNotifier notifier;
-
-        /**
-         * The boundary, which separates the various parts.
-         */
-        private final byte[] boundary;
-
-        /**
-         * The item, which we currently process.
-         */
-        private FileItemStreamImpl currentItem;
-
-        /**
-         * The current items field name.
-         */
-        private String currentFieldName;
-
-        /**
-         * Whether we are currently skipping the preamble.
-         */
-        private boolean skipPreamble;
-
-        /**
-         * Whether the current item may still be read.
-         */
-        private boolean itemValid;
-
-        /**
-         * Whether we have seen the end of the file.
-         */
-        private boolean eof;
-
-        /**
-         * Creates a new instance.
-         *
-         * @param ctx The request context.
-         * @throws FileUploadException An error occurred while
-         *   parsing the request.
-         * @throws IOException An I/O error occurred.
-         */
-        FileItemIteratorImpl(RequestContext ctx)
-                throws FileUploadException, IOException {
-            if (ctx == null) {
-                throw new NullPointerException("ctx parameter");
-            }
-
-            String contentType = ctx.getContentType();
-            if ((null == contentType)
-                    || (!contentType.toLowerCase(Locale.ENGLISH).startsWith(MULTIPART))) {
-                throw new InvalidContentTypeException(
-                        format("the request doesn't contain a %s or %s stream, content type header is %s",
-                               MULTIPART_FORM_DATA, MULTIPART_MIXED, contentType));
-            }
-
-
-            @SuppressWarnings("deprecation") // still has to be backward compatible
-            final int contentLengthInt = ctx.getContentLength();
-
-            final long requestSize = UploadContext.class.isAssignableFrom(ctx.getClass())
-                                     // Inline conditional is OK here CHECKSTYLE:OFF
-                                     ? ((UploadContext) ctx).contentLength()
-                                     : contentLengthInt;
-                                     // CHECKSTYLE:ON
-
-            InputStream input; // N.B. this is eventually closed in MultipartStream processing
-            if (sizeMax >= 0) {
-                if (requestSize != -1 && requestSize > sizeMax) {
-                    throw new SizeLimitExceededException(
-                        format("the request was rejected because its size (%s) exceeds the configured maximum (%s)",
-                                Long.valueOf(requestSize), Long.valueOf(sizeMax)),
-                               requestSize, sizeMax);
-                }
-                // N.B. this is eventually closed in MultipartStream processing
-                input = new LimitedInputStream(ctx.getInputStream(), sizeMax) {
-                    @Override
-                    protected void raiseError(long pSizeMax, long pCount)
-                            throws IOException {
-                        FileUploadException ex = new SizeLimitExceededException(
-                        format("the request was rejected because its size (%s) exceeds the configured maximum (%s)",
-                                Long.valueOf(pCount), Long.valueOf(pSizeMax)),
-                               pCount, pSizeMax);
-                        throw new FileUploadIOException(ex);
-                    }
-                };
-            } else {
-                input = ctx.getInputStream();
-            }
-
-            String charEncoding = headerEncoding;
-            if (charEncoding == null) {
-                charEncoding = ctx.getCharacterEncoding();
-            }
-
-            boundary = getBoundary(contentType);
-            if (boundary == null) {
-                IOUtils.closeQuietly(input); // avoid possible resource leak
-                throw new FileUploadException("the request was rejected because no multipart boundary was found");
-            }
-
-            notifier = new MultipartStream.ProgressNotifier(listener, requestSize);
-            try {
-                multi = new MultipartStream(input, boundary, notifier);
-            } catch (IllegalArgumentException iae) {
-                IOUtils.closeQuietly(input); // avoid possible resource leak
-                throw new InvalidContentTypeException(
-                        format("The boundary specified in the %s header is too long", CONTENT_TYPE), iae);
-            }
-            multi.setHeaderEncoding(charEncoding);
-
-            skipPreamble = true;
-            findNextItem();
-        }
-
-        /**
-         * Called for finding the next item, if any.
-         *
-         * @return True, if an next item was found, otherwise false.
-         * @throws IOException An I/O error occurred.
-         */
-        private boolean findNextItem() throws IOException {
-            if (eof) {
-                return false;
-            }
-            if (currentItem != null) {
-                currentItem.close();
-                currentItem = null;
-            }
-            for (;;) {
-                boolean nextPart;
-                if (skipPreamble) {
-                    nextPart = multi.skipPreamble();
-                } else {
-                    nextPart = multi.readBoundary();
-                }
-                if (!nextPart) {
-                    if (currentFieldName == null) {
-                        // Outer multipart terminated -> No more data
-                        eof = true;
-                        return false;
-                    }
-                    // Inner multipart terminated -> Return to parsing the outer
-                    multi.setBoundary(boundary);
-                    currentFieldName = null;
-                    continue;
-                }
-                FileItemHeaders headers = getParsedHeaders(multi.readHeaders());
-                if (currentFieldName == null) {
-                    // We're parsing the outer multipart
-                    String fieldName = getFieldName(headers);
-                    if (fieldName == null) {
-                        fieldName = "data";
-                    }
-                    if (fieldName != null) {
-                        String subContentType = headers.getHeader(CONTENT_TYPE);
-                        if (subContentType != null
-                                &&  subContentType.toLowerCase(Locale.ENGLISH)
-                                        .startsWith(MULTIPART_MIXED)) {
-                            currentFieldName = fieldName;
-                            // Multiple files associated with this field name
-                            byte[] subBoundary = getBoundary(subContentType);
-                            multi.setBoundary(subBoundary);
-                            skipPreamble = true;
-                            continue;
-                        }
-                        String fileName = getFileName(headers);
-                        currentItem = new FileItemStreamImpl(fileName,
-                                fieldName, headers.getHeader(CONTENT_TYPE),
-                                fileName == null, getContentLength(headers));
-                        currentItem.setHeaders(headers);
-                        notifier.noteItem();
-                        itemValid = true;
-                        return true;
-                    }
-                } else {
-                    String fileName = getFileName(headers);
-                    if (fileName == null) {
-                        fileName = "data";
-                    }
-                    if (fileName != null) {
-                        currentItem = new FileItemStreamImpl(fileName,
-                                currentFieldName,
-                                headers.getHeader(CONTENT_TYPE),
-                                false, getContentLength(headers));
-                        currentItem.setHeaders(headers);
-                        notifier.noteItem();
-                        itemValid = true;
-                        return true;
-                    }
-                }
-                multi.discardBodyData();
-            }
-        }
-
-        private long getContentLength(FileItemHeaders pHeaders) {
-            try {
-                return Long.parseLong(pHeaders.getHeader(CONTENT_LENGTH));
-            } catch (Exception e) {
-                return -1;
-            }
-        }
-
-        /**
-         * Returns, whether another instance of {@link FileItemStream}
-         * is available.
-         *
-         * @throws FileUploadException Parsing or processing the
-         *   file item failed.
-         * @throws IOException Reading the file item failed.
-         * @return True, if one or more additional file items
-         *   are available, otherwise false.
-         */
-        @Override
-        public boolean hasNext() throws FileUploadException, IOException {
-            if (eof) {
-                return false;
-            }
-            if (itemValid) {
-                return true;
-            }
-            try {
-                return findNextItem();
-            } catch (FileUploadIOException e) {
-                // unwrap encapsulated SizeException
-                throw (FileUploadException) e.getCause();
-            }
-        }
-
-        /**
-         * Returns the next available {@link FileItemStream}.
-         *
-         * @throws java.util.NoSuchElementException No more items are
-         *   available. Use {@link #hasNext()} to prevent this exception.
-         * @throws FileUploadException Parsing or processing the
-         *   file item failed.
-         * @throws IOException Reading the file item failed.
-         * @return FileItemStream instance, which provides
-         *   access to the next file item.
-         */
-        @Override
-        public FileItemStream next() throws FileUploadException, IOException {
-            if (eof  ||  (!itemValid && !hasNext())) {
-                throw new NoSuchElementException();
-            }
-            itemValid = false;
-            return currentItem;
-        }
-
+    /**
+     * Sets the progress listener.
+     *
+     * @param pListener The progress listener, if any. Defaults to null.
+     */
+    public void setProgressListener(ProgressListener pListener) {
+        listener = pListener;
     }
 
     /**
@@ -1251,9 +776,8 @@ public abstract class DemoFileUploadBase {
          * Constructs an <code>InvalidContentTypeException</code> with
          * the specified detail message and cause.
          *
-         * @param msg The detail message.
+         * @param msg   The detail message.
          * @param cause the original cause
-         *
          * @since 1.3.1
          */
         public InvalidContentTypeException(String msg, Throwable cause) {
@@ -1281,7 +805,7 @@ public abstract class DemoFileUploadBase {
         /**
          * Creates a new instance with the given cause.
          *
-         * @param pMsg The detail message.
+         * @param pMsg       The detail message.
          * @param pException The exceptions cause.
          */
         public IOFileUploadException(String pMsg, IOException pException) {
@@ -1325,8 +849,8 @@ public abstract class DemoFileUploadBase {
         /**
          * Creates a new instance.
          *
-         * @param message The detail message.
-         * @param actual The actual number of bytes in the request.
+         * @param message   The detail message.
+         * @param actual    The actual number of bytes in the request.
          * @param permitted The requests size limit, in bytes.
          */
         protected SizeException(String message, long actual, long permitted) {
@@ -1363,11 +887,11 @@ public abstract class DemoFileUploadBase {
      * contains the value -1.
      *
      * @deprecated 1.2 As of commons-fileupload 1.2, the presence of a
-     *   content-length header is no longer required.
+     * content-length header is no longer required.
      */
     @Deprecated
     public static class UnknownSizeException
-        extends FileUploadException {
+            extends FileUploadException {
 
         /**
          * The exceptions UID, for serializing an instance.
@@ -1415,9 +939,9 @@ public abstract class DemoFileUploadBase {
         }
 
         /**
+         * @param message The exceptions detail message.
          * @deprecated 1.2 Replaced by
          * {@link #SizeLimitExceededException(String, long, long)}
-         * @param message The exceptions detail message.
          */
         @Deprecated
         public SizeLimitExceededException(String message) {
@@ -1433,7 +957,7 @@ public abstract class DemoFileUploadBase {
          * @param permitted The maximum permitted request size.
          */
         public SizeLimitExceededException(String message, long actual,
-                long permitted) {
+                                          long permitted) {
             super(message, actual, permitted);
         }
 
@@ -1469,7 +993,7 @@ public abstract class DemoFileUploadBase {
          * @param permitted The maximum permitted request size.
          */
         public FileSizeLimitExceededException(String message, long actual,
-                long permitted) {
+                                              long permitted) {
             super(message, actual, permitted);
         }
 
@@ -1508,7 +1032,7 @@ public abstract class DemoFileUploadBase {
          * exception.
          *
          * @param pFieldName the field name of the item,
-         *        which caused the exception.
+         *                   which caused the exception.
          */
         public void setFieldName(String pFieldName) {
             fieldName = pFieldName;
@@ -1517,21 +1041,448 @@ public abstract class DemoFileUploadBase {
     }
 
     /**
-     * Returns the progress listener.
-     *
-     * @return The progress listener, if any, or null.
+     * The iterator, which is returned by
+     * {@link DemoFileUploadBase#getItemIterator(RequestContext)}.
      */
-    public ProgressListener getProgressListener() {
-        return listener;
-    }
+    private class FileItemIteratorImpl implements FileItemIterator {
 
-    /**
-     * Sets the progress listener.
-     *
-     * @param pListener The progress listener, if any. Defaults to null.
-     */
-    public void setProgressListener(ProgressListener pListener) {
-        listener = pListener;
+        /**
+         * The multi part stream to process.
+         */
+        private final MultipartStream multi;
+        /**
+         * The notifier, which used for triggering the
+         * {@link ProgressListener}.
+         */
+        private final MultipartStream.ProgressNotifier notifier;
+        /**
+         * The boundary, which separates the various parts.
+         */
+        private final byte[] boundary;
+        /**
+         * The item, which we currently process.
+         */
+        private FileItemStreamImpl currentItem;
+        /**
+         * The current items field name.
+         */
+        private String currentFieldName;
+        /**
+         * Whether we are currently skipping the preamble.
+         */
+        private boolean skipPreamble;
+        /**
+         * Whether the current item may still be read.
+         */
+        private boolean itemValid;
+        /**
+         * Whether we have seen the end of the file.
+         */
+        private boolean eof;
+
+        /**
+         * Creates a new instance.
+         *
+         * @param ctx The request context.
+         * @throws FileUploadException An error occurred while
+         *                             parsing the request.
+         * @throws IOException         An I/O error occurred.
+         */
+        FileItemIteratorImpl(RequestContext ctx)
+                throws FileUploadException, IOException {
+            if (ctx == null) {
+                throw new NullPointerException("ctx parameter");
+            }
+
+            String contentType = ctx.getContentType();
+            if ((null == contentType)
+                    || (!contentType.toLowerCase(Locale.ENGLISH).startsWith(MULTIPART))) {
+                throw new InvalidContentTypeException(
+                        format("the request doesn't contain a %s or %s stream, content type header is %s",
+                                MULTIPART_FORM_DATA, MULTIPART_MIXED, contentType));
+            }
+
+
+            @SuppressWarnings("deprecation") // still has to be backward compatible
+            final int contentLengthInt = ctx.getContentLength();
+
+            final long requestSize = UploadContext.class.isAssignableFrom(ctx.getClass())
+                    // Inline conditional is OK here CHECKSTYLE:OFF
+                    ? ((UploadContext) ctx).contentLength()
+                    : contentLengthInt;
+            // CHECKSTYLE:ON
+
+            InputStream input; // N.B. this is eventually closed in MultipartStream processing
+            if (sizeMax >= 0) {
+                if (requestSize != -1 && requestSize > sizeMax) {
+                    throw new SizeLimitExceededException(
+                            format("the request was rejected because its size (%s) exceeds the configured maximum (%s)",
+                                    Long.valueOf(requestSize), Long.valueOf(sizeMax)),
+                            requestSize, sizeMax);
+                }
+                // N.B. this is eventually closed in MultipartStream processing
+                input = new LimitedInputStream(ctx.getInputStream(), sizeMax) {
+                    @Override
+                    protected void raiseError(long pSizeMax, long pCount)
+                            throws IOException {
+                        FileUploadException ex = new SizeLimitExceededException(
+                                format("the request was rejected because its size (%s) exceeds the configured maximum (%s)",
+                                        Long.valueOf(pCount), Long.valueOf(pSizeMax)),
+                                pCount, pSizeMax);
+                        throw new FileUploadIOException(ex);
+                    }
+                };
+            } else {
+                input = ctx.getInputStream();
+            }
+
+            String charEncoding = headerEncoding;
+            if (charEncoding == null) {
+                charEncoding = ctx.getCharacterEncoding();
+            }
+
+            boundary = getBoundary(contentType);
+            if (boundary == null) {
+                IOUtils.closeQuietly(input); // avoid possible resource leak
+                throw new FileUploadException("the request was rejected because no multipart boundary was found");
+            }
+
+            notifier = new MultipartStream.ProgressNotifier(listener, requestSize);
+            try {
+                multi = new MultipartStream(input, boundary, notifier);
+            } catch (IllegalArgumentException iae) {
+                IOUtils.closeQuietly(input); // avoid possible resource leak
+                throw new InvalidContentTypeException(
+                        format("The boundary specified in the %s header is too long", CONTENT_TYPE), iae);
+            }
+            multi.setHeaderEncoding(charEncoding);
+
+            skipPreamble = true;
+            findNextItem();
+        }
+
+        /**
+         * Called for finding the next item, if any.
+         *
+         * @return True, if an next item was found, otherwise false.
+         * @throws IOException An I/O error occurred.
+         */
+        private boolean findNextItem() throws IOException {
+            if (eof) {
+                return false;
+            }
+            if (currentItem != null) {
+                currentItem.close();
+                currentItem = null;
+            }
+            for (; ; ) {
+                boolean nextPart;
+                if (skipPreamble) {
+                    nextPart = multi.skipPreamble();
+                } else {
+                    nextPart = multi.readBoundary();
+                }
+                if (!nextPart) {
+                    if (currentFieldName == null) {
+                        // Outer multipart terminated -> No more data
+                        eof = true;
+                        return false;
+                    }
+                    // Inner multipart terminated -> Return to parsing the outer
+                    multi.setBoundary(boundary);
+                    currentFieldName = null;
+                    continue;
+                }
+                FileItemHeaders headers = getParsedHeaders(multi.readHeaders());
+                if (currentFieldName == null) {
+                    // We're parsing the outer multipart
+                    String fieldName = getFieldName(headers);
+                    if (fieldName == null) {
+                        fieldName = "data";
+                    }
+                    if (fieldName != null) {
+                        String subContentType = headers.getHeader(CONTENT_TYPE);
+                        if (subContentType != null
+                                && subContentType.toLowerCase(Locale.ENGLISH)
+                                .startsWith(MULTIPART_MIXED)) {
+                            currentFieldName = fieldName;
+                            // Multiple files associated with this field name
+                            byte[] subBoundary = getBoundary(subContentType);
+                            multi.setBoundary(subBoundary);
+                            skipPreamble = true;
+                            continue;
+                        }
+                        String fileName = getFileName(headers);
+                        currentItem = new FileItemStreamImpl(fileName,
+                                fieldName, headers.getHeader(CONTENT_TYPE),
+                                fileName == null, getContentLength(headers));
+                        currentItem.setHeaders(headers);
+                        notifier.noteItem();
+                        itemValid = true;
+                        return true;
+                    }
+                } else {
+                    String fileName = getFileName(headers);
+                    if (fileName == null) {
+                        fileName = "data";
+                    }
+                    if (fileName != null) {
+                        currentItem = new FileItemStreamImpl(fileName,
+                                currentFieldName,
+                                headers.getHeader(CONTENT_TYPE),
+                                false, getContentLength(headers));
+                        currentItem.setHeaders(headers);
+                        notifier.noteItem();
+                        itemValid = true;
+                        return true;
+                    }
+                }
+                multi.discardBodyData();
+            }
+        }
+
+        private long getContentLength(FileItemHeaders pHeaders) {
+            try {
+                return Long.parseLong(pHeaders.getHeader(CONTENT_LENGTH));
+            } catch (Exception e) {
+                return -1;
+            }
+        }
+
+        /**
+         * Returns, whether another instance of {@link FileItemStream}
+         * is available.
+         *
+         * @return True, if one or more additional file items
+         * are available, otherwise false.
+         * @throws FileUploadException Parsing or processing the
+         *                             file item failed.
+         * @throws IOException         Reading the file item failed.
+         */
+        @Override
+        public boolean hasNext() throws FileUploadException, IOException {
+            if (eof) {
+                return false;
+            }
+            if (itemValid) {
+                return true;
+            }
+            try {
+                return findNextItem();
+            } catch (FileUploadIOException e) {
+                // unwrap encapsulated SizeException
+                throw (FileUploadException) e.getCause();
+            }
+        }
+
+        /**
+         * Returns the next available {@link FileItemStream}.
+         *
+         * @return FileItemStream instance, which provides
+         * access to the next file item.
+         * @throws java.util.NoSuchElementException No more items are
+         *                                          available. Use {@link #hasNext()} to prevent this exception.
+         * @throws FileUploadException              Parsing or processing the
+         *                                          file item failed.
+         * @throws IOException                      Reading the file item failed.
+         */
+        @Override
+        public FileItemStream next() throws FileUploadException, IOException {
+            if (eof || (!itemValid && !hasNext())) {
+                throw new NoSuchElementException();
+            }
+            itemValid = false;
+            return currentItem;
+        }
+
+        /**
+         * Default implementation of {@link FileItemStream}.
+         */
+        class FileItemStreamImpl implements FileItemStream {
+
+            /**
+             * The file items content type.
+             */
+            private final String contentType;
+
+            /**
+             * The file items field name.
+             */
+            private final String fieldName;
+
+            /**
+             * The file items file name.
+             */
+            private final String name;
+
+            /**
+             * Whether the file item is a form field.
+             */
+            private final boolean formField;
+
+            /**
+             * The file items input stream.
+             */
+            private final InputStream stream;
+
+            /**
+             * Whether the file item was already opened.
+             */
+            private boolean opened;
+
+            /**
+             * The headers, if any.
+             */
+            private FileItemHeaders headers;
+
+            /**
+             * Creates a new instance.
+             *
+             * @param pName          The items file name, or null.
+             * @param pFieldName     The items field name.
+             * @param pContentType   The items content type, or null.
+             * @param pFormField     Whether the item is a form field.
+             * @param pContentLength The items content length, if known, or -1
+             * @throws IOException Creating the file item failed.
+             */
+            FileItemStreamImpl(String pName, String pFieldName,
+                               String pContentType, boolean pFormField,
+                               long pContentLength) throws IOException {
+                name = pName;
+                fieldName = pFieldName;
+                contentType = pContentType;
+                formField = pFormField;
+                if (fileSizeMax != -1) { // Check if limit is already exceeded
+                    if (pContentLength != -1
+                            && pContentLength > fileSizeMax) {
+                        FileSizeLimitExceededException e =
+                                new FileSizeLimitExceededException(
+                                        format("The field %s exceeds its maximum permitted size of %s bytes.",
+                                                fieldName, Long.valueOf(fileSizeMax)),
+                                        pContentLength, fileSizeMax);
+                        e.setFileName(pName);
+                        e.setFieldName(pFieldName);
+                        throw new FileUploadIOException(e);
+                    }
+                }
+                // OK to construct stream now
+                final MultipartStream.ItemInputStream itemStream = multi.newInputStream();
+                InputStream istream = itemStream;
+                if (fileSizeMax != -1) {
+                    istream = new LimitedInputStream(istream, fileSizeMax) {
+                        @Override
+                        protected void raiseError(long pSizeMax, long pCount)
+                                throws IOException {
+                            itemStream.close(true);
+                            FileSizeLimitExceededException e =
+                                    new FileSizeLimitExceededException(
+                                            format("The field %s exceeds its maximum permitted size of %s bytes.",
+                                                    fieldName, Long.valueOf(pSizeMax)),
+                                            pCount, pSizeMax);
+                            e.setFieldName(fieldName);
+                            e.setFileName(name);
+                            throw new FileUploadIOException(e);
+                        }
+                    };
+                }
+                stream = istream;
+            }
+
+            /**
+             * Returns the items content type, or null.
+             *
+             * @return Content type, if known, or null.
+             */
+            @Override
+            public String getContentType() {
+                return contentType;
+            }
+
+            /**
+             * Returns the items field name.
+             *
+             * @return Field name.
+             */
+            @Override
+            public String getFieldName() {
+                return fieldName;
+            }
+
+            /**
+             * Returns the items file name.
+             *
+             * @return File name, if known, or null.
+             * @throws InvalidFileNameException The file name contains a NUL character,
+             *                                  which might be an indicator of a security attack. If you intend to
+             *                                  use the file name anyways, catch the exception and use
+             *                                  InvalidFileNameException#getName().
+             */
+            @Override
+            public String getName() {
+                return Streams.checkFileName(name);
+            }
+
+            /**
+             * Returns, whether this is a form field.
+             *
+             * @return True, if the item is a form field,
+             * otherwise false.
+             */
+            @Override
+            public boolean isFormField() {
+                return formField;
+            }
+
+            /**
+             * Returns an input stream, which may be used to
+             * read the items contents.
+             *
+             * @return Opened input stream.
+             * @throws IOException An I/O error occurred.
+             */
+            @Override
+            public InputStream openStream() throws IOException {
+                if (opened) {
+                    throw new IllegalStateException(
+                            "The stream was already opened.");
+                }
+                if (((Closeable) stream).isClosed()) {
+                    throw new FileItemStream.ItemSkippedException();
+                }
+                return stream;
+            }
+
+            /**
+             * Closes the file item.
+             *
+             * @throws IOException An I/O error occurred.
+             */
+            void close() throws IOException {
+                stream.close();
+            }
+
+            /**
+             * Returns the file item headers.
+             *
+             * @return The items header object
+             */
+            @Override
+            public FileItemHeaders getHeaders() {
+                return headers;
+            }
+
+            /**
+             * Sets the file item headers.
+             *
+             * @param pHeaders The items header object
+             */
+            @Override
+            public void setHeaders(FileItemHeaders pHeaders) {
+                headers = pHeaders;
+            }
+
+        }
+
     }
 
 }
