@@ -4,3 +4,5 @@ spring:
   servlet:
     multipart:
       resolve-lazily: false
+  main:
+    allow-bean-definition-overriding: true
