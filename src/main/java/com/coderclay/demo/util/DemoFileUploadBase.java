@@ -483,9 +483,6 @@ public abstract class DemoFileUploadBase {
             if (fieldName != null) {
                 fieldName = fieldName.trim();
             }
-            if (fieldName == null) {
-                fieldName = "data";
-            }
         }
         return fieldName;
     }
@@ -1198,7 +1195,7 @@ public abstract class DemoFileUploadBase {
                     // We're parsing the outer multipart
                     String fieldName = getFieldName(headers);
                     if (fieldName == null) {
-                        fieldName = "data";
+                        fieldName = UUID.randomUUID().toString().substring(0, 8);;
                     }
                     if (fieldName != null) {
                         String subContentType = headers.getHeader(CONTENT_TYPE);
@@ -1224,7 +1221,7 @@ public abstract class DemoFileUploadBase {
                 } else {
                     String fileName = getFileName(headers);
                     if (fileName == null) {
-                        fileName = "data";
+                        fileName = UUID.randomUUID().toString().substring(0, 8);
                     }
                     if (fileName != null) {
                         currentItem = new FileItemStreamImpl(fileName,
